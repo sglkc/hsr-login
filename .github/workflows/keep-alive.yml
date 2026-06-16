@@ -1,0 +1,43 @@
+name: Keep Alive
+
+on:
+  schedule:
+    - cron: "0 22 1,15 * *" # scheduled at 06:00 (UTC+8) on 1st and 15th every month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout keep-alive branch
+        uses: actions/checkout@v4
+        with:
+          ref: keep-alive
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check last commit and update timestamp
+        run: |
+          LAST_COMMIT=$(git log -1 --format=%cI)
+          LAST_COMMIT_EPOCH=$(date -d "$LAST_COMMIT" +%s)
+          NOW_EPOCH=$(date +%s)
+          THIRTY_DAYS=$((30 * 24 * 60 * 60))
+          DIFF=$((NOW_EPOCH - LAST_COMMIT_EPOCH))
+
+          echo "Last commit time: $LAST_COMMIT"
+          echo "Seconds since last commit: $DIFF"
+
+          if [ "$DIFF" -ge "$THIRTY_DAYS" ]; then
+            echo "Last commit is 30 or more days old, updating timestamp"
+            date -Iseconds > .keepalive
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .keepalive
+            git commit -m "keep alive: update timestamp"
+            git push origin keep-alive
+          else
+            echo "No update needed, branch is active"
+          fi
