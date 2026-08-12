@@ -31,7 +31,7 @@ jobs:
           echo "Remote version: $REMOTE_VERSION"
 
           if [ "$(printf '%s\n' "$REMOTE_VERSION" "$LOCAL_VERSION" | sort -V | head -n1)" != "$REMOTE_VERSION" ]; then
-            echo "Repository version is outdated. Do sync your fork!"
+            echo "::warning::Repository version is outdated. Do sync your fork!"
 
             if [ ! -z "$DISCORD_WEBHOOK" ]; then
               curl -H "Content-Type: application/json" \
@@ -39,7 +39,7 @@ jobs:
                    $DISCORD_WEBHOOK
             fi
 
-            exit 1
+            # do not exit non-zero so workflow stays green
           fi
   workflow-keepalive:
     if: github.event_name == 'schedule'
