@@ -2,7 +2,7 @@ name: Daily check in
 
 on:
   schedule:
-    - cron: "0 22 * * *" # scheduled at 06:00 (UTC+8) everyday
+    - cron: "15 22 * * *" # scheduled at 06:15 (UTC+8) everyday (off-peak to avoid Actions schedule delays)
   workflow_dispatch:
 
 permissions: {}
@@ -38,3 +38,4 @@ jobs:
       actions: write
     steps:
       - uses: liskin/gh-workflow-keepalive@f72ff1a1336129f29bf0166c0fd0ca6cf1bcb38c # v1
+        continue-on-error: true

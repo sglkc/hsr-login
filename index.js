@@ -3,8 +3,8 @@
 if (!process.env.COOKIE) throw new Error('COOKIE environment variable not set!')
 if (!process.env.GAMES) throw new Error('GAMES environment variable not set!')
 
-const cookies = process.env.COOKIE.split('\n').map(s => s.trim())
-const games = process.env.GAMES.split('\n').map(s => s.trim())
+const cookies = process.env.COOKIE.split('\n').map(s => s.trim()).filter(Boolean)
+const games = process.env.GAMES.split('\n').map(s => s.trim()).filter(Boolean)
 const discordWebhook = process.env.DISCORD_WEBHOOK
 const discordUser = process.env.DISCORD_USER
 const telegramToken = process.env.TELEGRAM_TOKEN
