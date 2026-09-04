@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-if (!process.env.COOKIE) throw new Error('COOKIE environment variable not set!')
-if (!process.env.GAMES) throw new Error('GAMES environment variable not set!')
+if (!process.env.COOKIE?.trim()) throw new Error('COOKIE environment variable or secret is not set!')
+if (!process.env.GAMES?.trim()) throw new Error('GAMES environment variable or secret is not set!')
 
-const cookies = process.env.COOKIE.split('\n').map(s => s.trim()).filter(Boolean)
-const games = process.env.GAMES.split('\n').map(s => s.trim()).filter(Boolean)
+const cookies = process.env.COOKIE.split('\n').map(s => s.trim().replace(/^["']|["']$/g, '').trim()).filter(Boolean)
+const games = process.env.GAMES.split('\n').map(s => s.trim().replace(/^["']|["']$/g, '').trim()).filter(Boolean)
 const discordWebhook = process.env.DISCORD_WEBHOOK
 const discordUser = process.env.DISCORD_USER
 const telegramToken = process.env.TELEGRAM_TOKEN
@@ -25,6 +25,25 @@ const endpoints = {
   tot: 'https://sg-public-api.hoyolab.com/event/luna/os/sign?act_id=e202202281857121',
 }
 
+const aliases = {
+  genshin: 'gi',
+  'genshin-impact': 'gi',
+  genshinimpact: 'gi',
+  starrail: 'hsr',
+  'honkai-star-rail': 'hsr',
+  honkaistarrail: 'hsr',
+  honkai: 'hi3',
+  honkai3: 'hi3',
+  honkai3rd: 'hi3',
+  'honkai-impact-3rd': 'hi3',
+  zenless: 'zzz',
+  zenlesszonezero: 'zzz',
+  'zenless-zone-zero': 'zzz',
+  themis: 'tot',
+  tearsofthemis: 'tot',
+  'tears-of-themis': 'tot',
+}
+
 let hasErrors = false
 let latestGames = []
 
@@ -33,13 +52,17 @@ let latestGames = []
  * A falsy `games` reuses the previous account's list, so multiple accounts sharing
  * the same games need the GAMES line specified only once.
  * @param {string} cookie Cookie header for the account (`ltuid_v2=...; ltoken_v2=...`).
- * @param {string} [games] Space-separated game codes; falsy reuses the prior account's games.
+ * @param {string} [games] Space or comma-separated game codes; falsy reuses the prior account's games.
  */
 async function run(cookie, games) {
   if (!games) {
     games = latestGames
   } else {
-    games = games.split(' ')
+    games = games
+      .split(/[\s,]+/)
+      .map(g => g.trim().toLowerCase())
+      .filter(Boolean)
+      .map(g => aliases[g] || g)
     latestGames = games
   }
 
@@ -68,9 +91,7 @@ async function run(cookie, games) {
     const headers = new Headers()
 
     headers.set('accept', 'application/json, text/plain, */*')
-    headers.set('accept-encoding', 'gzip, deflate, br, zstd')
     headers.set('accept-language', 'en-US,en;q=0.6')
-    headers.set('connection', 'keep-alive')
 
     headers.set('origin', 'https://act.hoyolab.com')
     headers.set('referrer', 'https://act.hoyolab.com')
@@ -98,7 +119,7 @@ async function run(cookie, games) {
       continue
     }
 
-    const code = String(json.retcode)
+    const code = String(json?.retcode)
     const successCodes = {
       '0': 'Successfully checked in!',
       '-5003': 'Already checked in for today',
@@ -110,8 +131,9 @@ async function run(cookie, games) {
     }
 
     const errorCodes = {
-      '-100': 'Error not logged in. Your cookie is invalid, try setting up again',
-      '-10002': 'Error not found. You haven\'t played this game'
+      '-100': 'Error not logged in. Your cookie is invalid or expired, try setting up again',
+      '-10002': "Error not found. You haven't played this game on this account",
+      '1034': 'Risk system triggered (CAPTCHA verification required). Please check in manually once on the HoYoLAB website/app to clear verification',
     }
 
     log('debug', game, `Headers`, Object.fromEntries(res.headers))
@@ -122,7 +144,8 @@ async function run(cookie, games) {
       continue
     }
 
-    log('error', game, `Error undocumented, report to Issues page if this persists`)
+    const errorMsg = json?.message ? `(${json.message})` : 'Error undocumented'
+    log('error', game, `Check-in failed with code ${code} ${errorMsg}. If this persists, report to Issues page`)
   }
 }
 
