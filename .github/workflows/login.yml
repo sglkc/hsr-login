@@ -2,7 +2,8 @@ name: Daily check in
 
 on:
   schedule:
-    - cron: "0 22 * * *" # scheduled at 06:00 (UTC+8) everyday
+    - cron: "30 16 * * *" # scheduled at 00:30 (UTC+8) everyday (shortly after HoYoLAB reset)
+    - cron: "15 22 * * *" # scheduled at 06:15 (UTC+8) everyday (morning backup check)
   workflow_dispatch:
 
 permissions: {}
@@ -24,13 +25,13 @@ jobs:
       - name: Check In
         run: node index.js
         env:
-          COOKIE: ${{ secrets.COOKIE }}
-          GAMES: ${{ vars.GAMES }}
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          DISCORD_USER: ${{ secrets.DISCORD_USER }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          HOYOLAB_LANG: ${{ vars.HOYOLAB_LANG }}
+          COOKIE: ${{ secrets.COOKIE || vars.COOKIE }}
+          GAMES: ${{ vars.GAMES || secrets.GAMES }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK || vars.DISCORD_WEBHOOK }}
+          DISCORD_USER: ${{ secrets.DISCORD_USER || vars.DISCORD_USER }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN || vars.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || vars.TELEGRAM_CHAT_ID }}
+          HOYOLAB_LANG: ${{ vars.HOYOLAB_LANG || secrets.HOYOLAB_LANG }}
   workflow-keepalive:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
@@ -38,3 +39,4 @@ jobs:
       actions: write
     steps:
       - uses: liskin/gh-workflow-keepalive@f72ff1a1336129f29bf0166c0fd0ca6cf1bcb38c # v1
+        continue-on-error: true
